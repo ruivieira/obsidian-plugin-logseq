@@ -1,0 +1,14 @@
+.logseq-done-task {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.logseq-status-task {
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: var(--text-a);
+}
+
+a[href="#A"],a[href="#B"],a[href="#C"],a[href="#D"] {
+  color: var(--faded-blue) !important;
+}

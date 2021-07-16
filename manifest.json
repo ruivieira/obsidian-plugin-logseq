@@ -1,0 +1,11 @@
+{
+	"id": "logseq-format",
+	"name": "LogSeq markdown formatting",
+	"version": "0.0.1",
+	"minAppVersion": "0.9.15",
+	"description": "Render LogSeq-specific markdown",
+	"author": "Rui Vieira",
+	"authorUrl": "https://github.com/ruivieira/obsidian-plugin-logseq",
+	"isDesktopOnly": false,
+	"css": "style.css"
+}

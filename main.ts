@@ -136,13 +136,12 @@ export default class LogSeqPlugin extends Plugin {
 
   onload() {
     console.log(`Loading LogSeq plugin ${VERSION}`);
-    MarkdownPreviewRenderer.registerPostProcessor(LogSeqPlugin.postprocessor);
+    this.registerMarkdownPostProcessor(LogSeqPlugin.postprocessor);
     // Style headings in source editing
     this.registerCodeMirror(cmHeadingOverlay);
   }
 
   onunload() {
     console.log(`unloading LogSeq plugin ${VERSION}`);
-    MarkdownPreviewRenderer.unregisterPostProcessor(LogSeqPlugin.postprocessor);
   }
 }

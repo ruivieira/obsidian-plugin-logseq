@@ -62,24 +62,30 @@ function isBlock(content: string): boolean {
   return blockTest.test(content);
 }
 
-function cmHeadingOverlay(cm: CodeMirror.Editor) {
-  cm.addOverlay({
-    token: (stream: any) => {
-      if (stream.match(HEADING_REGEX["h1"])) {
-        return "header-1";
-      } else if (stream.match(HEADING_REGEX["h2"])) {
-        return "header-2";
-      } else if (stream.match(HEADING_REGEX["h3"])) {
-        return "header-3";
-      } else if (stream.match(HEADING_REGEX["h4"])) {
-        return "header-4";
-      } else if (stream.match(HEADING_REGEX["h5"])) {
-        return "header-5";
-      } else {
-        stream.next();
-      }
-    },
-  });
+const headingsOverlay = {
+  token: (stream: any) => {
+    if (stream.match(HEADING_REGEX["h1"])) {
+      return "header-1";
+    } else if (stream.match(HEADING_REGEX["h2"])) {
+      return "header-2";
+    } else if (stream.match(HEADING_REGEX["h3"])) {
+      return "header-3";
+    } else if (stream.match(HEADING_REGEX["h4"])) {
+      return "header-4";
+    } else if (stream.match(HEADING_REGEX["h5"])) {
+      return "header-5";
+    } else {
+      stream.next();
+    }
+  },
+};
+
+function cmAddHeadingOverlay(cm: CodeMirror.Editor) {
+  cm.addOverlay(headingsOverlay);
+}
+
+function cmRemoveHeadingOverlay(cm: CodeMirror.Editor) {
+  cm.removeOverlay(headingsOverlay);
 }
 
 export default class LogSeqPlugin extends Plugin {
@@ -138,10 +144,11 @@ export default class LogSeqPlugin extends Plugin {
     console.log(`Loading LogSeq plugin ${VERSION}`);
     this.registerMarkdownPostProcessor(LogSeqPlugin.postprocessor);
     // Style headings in source editing
-    this.registerCodeMirror(cmHeadingOverlay);
+    this.registerCodeMirror(cmAddHeadingOverlay);
   }
 
   onunload() {
     console.log(`unloading LogSeq plugin ${VERSION}`);
+    this.registerCodeMirror(cmRemoveHeadingOverlay);
   }
 }

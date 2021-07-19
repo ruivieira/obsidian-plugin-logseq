@@ -1,6 +1,6 @@
 {
-	"id": "logseq-format",
-	"name": "LogSeq markdown formatting",
+	"id": "logseq-compat",
+	"name": "LogSeq markdown compatibility plugin",
 	"version": "0.0.3",
 	"minAppVersion": "0.9.15",
 	"description": "Render LogSeq-specific markdown",

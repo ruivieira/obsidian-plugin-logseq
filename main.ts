@@ -1,7 +1,6 @@
 import {
   MarkdownPostProcessor,
   MarkdownPostProcessorContext,
-  MarkdownPreviewRenderer,
   Plugin,
 } from "obsidian";
 

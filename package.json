@@ -1,5 +1,5 @@
 {
-  "name": "obsidian-plugin-logseq",
+  "name": "logseq-compat",
   "version": "0.0.3",
   "description": "Render LogSeq-specific markdown.",
   "main": "main.js",

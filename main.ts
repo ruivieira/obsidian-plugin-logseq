@@ -14,7 +14,15 @@ enum TaskType {
   UNKNOWN,
 }
 
-const VERSION = "0.0.2";
+const HEADING_REGEX = {
+  h1: /(?:\s+)?- # (?:.*)$/gms,
+  h2: /(?:\s+)?- ## (?:.*)$/gms,
+  h3: /(?:\s+)?- ### (?:.*)$/gms,
+  h4: /(?:\s+)?- #### (?:.*)$/gms,
+  h5: /(?:\s+)?- ##### (?:.*)$/gms,
+};
+
+const VERSION = "0.0.3";
 
 function parseTaskType(content: string): TaskType | null {
   if (content.startsWith("DONE ")) {
@@ -40,6 +48,10 @@ function removeTimestamps(content: string): string {
     .replace(/doing:: (?:\d{13})/gms, "")
     .replace(/later:: (?:\d{13})/gms, "")
     .replace(/canceled:: (?:\d{13})/gms, "")
+    .replace(
+      /id:: (?:[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12})/gims,
+      ""
+    )
     .replace(/collapsed:: (?:true|false)/gms, "")
     .replace("<br>", "");
 }
@@ -48,6 +60,26 @@ const blockTest = new RegExp(/\#\+BEGIN_(WARNING|IMPORTANT|QUOTE|CAUTION)/gms);
 
 function isBlock(content: string): boolean {
   return blockTest.test(content);
+}
+
+function cmHeadingOverlay(cm: CodeMirror.Editor) {
+  cm.addOverlay({
+    token: (stream: any) => {
+      if (stream.match(HEADING_REGEX["h1"])) {
+        return "header-1";
+      } else if (stream.match(HEADING_REGEX["h2"])) {
+        return "header-2";
+      } else if (stream.match(HEADING_REGEX["h3"])) {
+        return "header-3";
+      } else if (stream.match(HEADING_REGEX["h4"])) {
+        return "header-4";
+      } else if (stream.match(HEADING_REGEX["h5"])) {
+        return "header-5";
+      } else {
+        stream.next();
+      }
+    },
+  });
 }
 
 export default class LogSeqPlugin extends Plugin {
@@ -105,6 +137,8 @@ export default class LogSeqPlugin extends Plugin {
   onload() {
     console.log(`Loading LogSeq plugin ${VERSION}`);
     MarkdownPreviewRenderer.registerPostProcessor(LogSeqPlugin.postprocessor);
+    // Style headings in source editing
+    this.registerCodeMirror(cmHeadingOverlay);
   }
 
   onunload() {

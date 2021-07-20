@@ -1,88 +1,139 @@
 import {
   MarkdownPostProcessor,
   MarkdownPostProcessorContext,
-  MarkdownPreviewRenderer,
   Plugin,
 } from "obsidian";
 
 enum TaskType {
-  TODO,
-  DONE,
-  DOING,
-  LATER,
-  CANCELED,
-  UNKNOWN,
+  TODO = "TODO",
+  DONE = "DONE",
+  DOING = "DOING",
+  LATER = "LATER",
+  CANCELED = "CANCELED",
+  UNKNOWN = "UNKNOWN",
 }
 
-const HEADING_REGEX = {
-  h1: /(?:\s+)?- # (?:.*)$/gms,
-  h2: /(?:\s+)?- ## (?:.*)$/gms,
-  h3: /(?:\s+)?- ### (?:.*)$/gms,
-  h4: /(?:\s+)?- #### (?:.*)$/gms,
-  h5: /(?:\s+)?- ##### (?:.*)$/gms,
-};
+enum TaskCSSClass {
+  COMPLETE = "logseq-complete-task",
+  INCOMPLETE = "logseq-incomplete-task",
+  KEYWORD = "logseq-keyword",
+}
 
-const VERSION = "0.0.3";
+const VERSION = "0.0.4";
 
-function parseTaskType(content: string): TaskType | null {
-  if (content.startsWith("DONE ")) {
-    return TaskType.DONE;
-  } else if (content.startsWith("TODO ")) {
-    return TaskType.TODO;
-  } else if (content.startsWith("DOING ")) {
-    return TaskType.DOING;
-  } else if (content.startsWith("LATER ")) {
-    return TaskType.LATER;
-  } else if (content.startsWith("CANCELED ")) {
-    return TaskType.CANCELED;
-  } else {
-    return TaskType.UNKNOWN;
+class LogSeqRegExes {
+  static parseTaskType(content: string): TaskType {
+    if (content.startsWith("DONE ")) {
+      return TaskType.DONE;
+    } else if (content.startsWith("TODO ")) {
+      return TaskType.TODO;
+    } else if (content.startsWith("DOING ")) {
+      return TaskType.DOING;
+    } else if (content.startsWith("LATER ")) {
+      return TaskType.LATER;
+    } else if (content.startsWith("CANCELED ")) {
+      return TaskType.CANCELED;
+    } else {
+      return TaskType.UNKNOWN;
+    }
+  }
+
+  static HEADING_REGEX = {
+    h1: /(?:\s+)?- # (?:.*)$/gms,
+    h2: /(?:\s+)?- ## (?:.*)$/gms,
+    h3: /(?:\s+)?- ### (?:.*)$/gms,
+    h4: /(?:\s+)?- #### (?:.*)$/gms,
+    h5: /(?:\s+)?- ##### (?:.*)$/gms,
+  };
+
+  static BEGIN_BLOCK_REGEX = new RegExp(
+    /\#\+BEGIN_(WARNING|IMPORTANT|QUOTE|CAUTION)/gms
+  );
+  static END_BLOCK_REGEX = new RegExp(
+    /\#\+END_(WARNING|IMPORTANT|QUOTE|CAUTION)/gms
+  );
+
+  static isBlock(content: string): boolean {
+    return LogSeqRegExes.BEGIN_BLOCK_REGEX.test(content);
   }
 }
 
-function removeTimestamps(content: string): string {
-  return content
-    .replace(/doing:: (?:\d{13})/gms, "")
-    .replace(/done:: (?:\d{13})/gms, "")
-    .replace(/todo:: (?:\d{13})/gms, "")
-    .replace(/doing:: (?:\d{13})/gms, "")
-    .replace(/later:: (?:\d{13})/gms, "")
-    .replace(/canceled:: (?:\d{13})/gms, "")
-    .replace(
-      /id:: (?:[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12})/gims,
-      ""
-    )
-    .replace(/collapsed:: (?:true|false)/gms, "")
-    .replace("<br>", "");
-}
-
-const blockTest = new RegExp(/\#\+BEGIN_(WARNING|IMPORTANT|QUOTE|CAUTION)/gms);
-
-function isBlock(content: string): boolean {
-  return blockTest.test(content);
-}
-
-function cmHeadingOverlay(cm: CodeMirror.Editor) {
-  cm.addOverlay({
+class CodeMirrorOverlays {
+  static headingsOverlay = {
     token: (stream: any) => {
-      if (stream.match(HEADING_REGEX["h1"])) {
+      if (stream.match(LogSeqRegExes.HEADING_REGEX["h1"])) {
         return "header-1";
-      } else if (stream.match(HEADING_REGEX["h2"])) {
+      } else if (stream.match(LogSeqRegExes.HEADING_REGEX["h2"])) {
         return "header-2";
-      } else if (stream.match(HEADING_REGEX["h3"])) {
+      } else if (stream.match(LogSeqRegExes.HEADING_REGEX["h3"])) {
         return "header-3";
-      } else if (stream.match(HEADING_REGEX["h4"])) {
+      } else if (stream.match(LogSeqRegExes.HEADING_REGEX["h4"])) {
         return "header-4";
-      } else if (stream.match(HEADING_REGEX["h5"])) {
+      } else if (stream.match(LogSeqRegExes.HEADING_REGEX["h5"])) {
         return "header-5";
       } else {
         stream.next();
       }
     },
-  });
+  };
+  static cmAddHeadingOverlay(cm: CodeMirror.Editor) {
+    cm.addOverlay(CodeMirrorOverlays.headingsOverlay);
+  }
+
+  static cmRemoveHeadingOverlay(cm: CodeMirror.Editor) {
+    cm.removeOverlay(CodeMirrorOverlays.headingsOverlay);
+  }
+}
+
+function createKeywordElement(keyword: string): HTMLElement {
+  const element = document.createElement("span");
+  element.classList.add(TaskCSSClass.KEYWORD);
+  element.textContent = keyword;
+  return element;
+}
+
+function createCheckboxElement(checked: boolean = false): HTMLElement {
+  const element = document.createElement("input");
+  element.type = "checkbox";
+  element.checked = checked;
+  return element;
 }
 
 export default class LogSeqPlugin extends Plugin {
+  static removeProperties(content: string): string {
+    return content
+      .replace(/doing:: (?:\d{13})/, "")
+      .replace(/done:: (?:\d{13})/, "")
+      .replace(/todo:: (?:\d{13})/, "")
+      .replace(/doing:: (?:\d{13})/, "")
+      .replace(/later:: (?:\d{13})/, "")
+      .replace(/canceled:: (?:\d{13})/, "")
+      .replace(
+        /id:: (?:[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12})/i,
+        ""
+      )
+      .replace(/collapsed:: (?:true|false)/gms, "");
+  }
+
+  static processChildren(el: Element, keyword: string) {
+    el.childNodes.forEach((child) => {
+      if (child.nodeType == Node.TEXT_NODE) {
+        if (child.nodeValue.startsWith(keyword)) {
+          child.nodeValue = child.nodeValue.replace(keyword, "");
+        }
+        child.nodeValue = LogSeqPlugin.removeProperties(child.nodeValue);
+      }
+    });
+  }
+
+  static styleNode(el: Element, classname: TaskCSSClass) {
+    el.querySelectorAll("li[data-line]").forEach((child) => {
+      // Do not "complete" the child tasks, since this is LogSeq's behaviour
+      child.classList.add(TaskCSSClass.INCOMPLETE);
+    });
+    el.classList.add(classname);
+  }
+
   static postprocessor: MarkdownPostProcessor = (
     el: HTMLElement,
     ctx: MarkdownPostProcessorContext
@@ -90,59 +141,70 @@ export default class LogSeqPlugin extends Plugin {
     const entries = el.querySelectorAll("li[data-line]");
 
     entries.forEach((entry) => {
-      const taskType = parseTaskType(entry.textContent);
-
       // Check if the entry is a org-mode block
-      if (isBlock(entry.innerHTML)) {
+      if (LogSeqRegExes.isBlock(entry.innerHTML)) {
         let replacedBlock = entry.innerHTML.replace(
-          /\#\+BEGIN_(WARNING|IMPORTANT|QUOTE|CAUTION)/,
+          LogSeqRegExes.BEGIN_BLOCK_REGEX,
           "<blockquote> &#9759;"
         );
         replacedBlock = replacedBlock.replace(
-          /\#\+END_(WARNING|IMPORTANT|QUOTE|CAUTION)/,
+          LogSeqRegExes.END_BLOCK_REGEX,
           "</blockquote>"
         );
         entry.innerHTML = replacedBlock;
       }
+      const taskType = LogSeqRegExes.parseTaskType(entry.textContent);
 
       if (taskType == TaskType.DONE) {
-        const replacedHTML = removeTimestamps(
-          entry.innerHTML.replace("DONE", "")
-        );
-        entry.innerHTML = `<span class="logseq-done-task"><input type="checkbox" checked> ${replacedHTML}</span>`;
+        LogSeqPlugin.processChildren(entry, TaskType.DONE);
+
+        entry.insertAdjacentElement("afterbegin", createCheckboxElement(true));
+        LogSeqPlugin.styleNode(entry, TaskCSSClass.COMPLETE);
       } else if (taskType == TaskType.TODO) {
-        const replacedHTML = removeTimestamps(
-          entry.innerHTML.replace("TODO", "")
+        LogSeqPlugin.processChildren(entry, TaskType.TODO);
+
+        entry.insertAdjacentElement(
+          "afterbegin",
+          createKeywordElement(TaskType.TODO)
         );
-        entry.innerHTML = `<input type="checkbox"> <span class="logseq-status-task">TODO</span> ${replacedHTML}`;
+
+        entry.insertAdjacentElement("afterbegin", createCheckboxElement());
+        LogSeqPlugin.styleNode(entry, TaskCSSClass.INCOMPLETE);
       } else if (taskType == TaskType.DOING) {
-        const replacedHTML = removeTimestamps(
-          entry.innerHTML.replace("DOING", "")
+        LogSeqPlugin.processChildren(entry, TaskType.DOING);
+
+        entry.insertAdjacentElement(
+          "afterbegin",
+          createKeywordElement(TaskType.DOING)
         );
-        entry.innerHTML = `<input type="checkbox"> <span class="logseq-status-task">DOING</span> ${replacedHTML}`;
+
+        entry.insertAdjacentElement("afterbegin", createCheckboxElement());
       } else if (taskType == TaskType.LATER) {
-        const replacedHTML = removeTimestamps(
-          entry.innerHTML.replace("LATER", "")
+        LogSeqPlugin.processChildren(entry, TaskType.LATER);
+
+        entry.insertAdjacentElement(
+          "afterbegin",
+          createKeywordElement(TaskType.LATER)
         );
-        entry.innerHTML = `<input type="checkbox"> <span class="logseq-status-task">LATER</span> ${replacedHTML}`;
+
+        entry.insertAdjacentElement("afterbegin", createCheckboxElement());
+        LogSeqPlugin.styleNode(entry, TaskCSSClass.INCOMPLETE);
       } else if (taskType == TaskType.CANCELED) {
-        const replacedHTML = removeTimestamps(
-          entry.innerHTML.replace("CANCELED", "")
-        );
-        entry.innerHTML = `<span class="logseq-done-task">${replacedHTML}</span>`;
+        LogSeqPlugin.processChildren(entry, TaskType.CANCELED);
+        LogSeqPlugin.styleNode(entry, TaskCSSClass.COMPLETE);
       }
     });
   };
 
   onload() {
-    console.log(`Loading LogSeq plugin ${VERSION}`);
-    MarkdownPreviewRenderer.registerPostProcessor(LogSeqPlugin.postprocessor);
+    console.log(`Loading logseq-compat plugin ${VERSION}`);
+    this.registerMarkdownPostProcessor(LogSeqPlugin.postprocessor);
     // Style headings in source editing
-    this.registerCodeMirror(cmHeadingOverlay);
+    this.registerCodeMirror(CodeMirrorOverlays.cmAddHeadingOverlay);
   }
 
   onunload() {
-    console.log(`unloading LogSeq plugin ${VERSION}`);
-    MarkdownPreviewRenderer.unregisterPostProcessor(LogSeqPlugin.postprocessor);
+    console.log(`unloading logseq-compat plugin ${VERSION}`);
+    this.registerCodeMirror(CodeMirrorOverlays.cmRemoveHeadingOverlay);
   }
 }

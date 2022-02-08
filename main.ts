@@ -39,11 +39,19 @@ class LogSeqRegExes {
   }
 
   static HEADING_REGEX = {
-    h1: /(?:\s+)?- # (?:.*)$/gms,
-    h2: /(?:\s+)?- ## (?:.*)$/gms,
-    h3: /(?:\s+)?- ### (?:.*)$/gms,
-    h4: /(?:\s+)?- #### (?:.*)$/gms,
-    h5: /(?:\s+)?- ##### (?:.*)$/gms,
+    h1: /^(?:\s+)?- # (?:.*)$/gms,
+    h2: /^(?:\s+)?- ## (?:.*)$/gms,
+    h3: /^(?:\s+)?- ### (?:.*)$/gms,
+    h4: /^(?:\s+)?- #### (?:.*)$/gms,
+    h5: /^(?:\s+)?- ##### (?:.*)$/gms,
+  };
+
+  static HEADING_FORMAT_REGEX = {
+    hf1: /^(?:\s+)?- # /gms,
+    hf2: /^(?:\s+)?- ## /gms,
+    hf3: /^(?:\s+)?- ### /gms,
+    hf4: /^(?:\s+)?- #### /gms,
+    hf5: /^(?:\s+)?- ##### /gms,
   };
 
   static BEGIN_BLOCK_REGEX = new RegExp(
@@ -61,27 +69,48 @@ class LogSeqRegExes {
 class CodeMirrorOverlays {
   static headingsOverlay = {
     token: (stream: any) => {
+      const baseToken = stream.baseToken();
       if (stream.match(LogSeqRegExes.HEADING_REGEX["h1"])) {
-        return "header-1";
+        return "header header-1";
       } else if (stream.match(LogSeqRegExes.HEADING_REGEX["h2"])) {
-        return "header-2";
+        return "header header-2";
       } else if (stream.match(LogSeqRegExes.HEADING_REGEX["h3"])) {
-        return "header-3";
+        return "header header-3";
       } else if (stream.match(LogSeqRegExes.HEADING_REGEX["h4"])) {
-        return "header-4";
+        return "header header-4";
       } else if (stream.match(LogSeqRegExes.HEADING_REGEX["h5"])) {
-        return "header-5";
+        return "header header-5";
       } else {
-        stream.next();
+        stream.skipToEnd();
       }
-    },
+    }
+  };
+  static headingFormatOverlay = {
+    token: (stream: any) => {
+      const baseToken = stream.baseToken();
+      if (stream.match(LogSeqRegExes.HEADING_FORMAT_REGEX["hf1"])) {
+        return "formatting-header formatting-header-1";
+      } else if (stream.match(LogSeqRegExes.HEADING_FORMAT_REGEX["hf2"])) {
+        return "formatting-header formatting-header-2";
+      } else if (stream.match(LogSeqRegExes.HEADING_FORMAT_REGEX["hf3"])) {
+        return "formatting-header formatting-header-3";
+      } else if (stream.match(LogSeqRegExes.HEADING_FORMAT_REGEX["hf4"])) {
+        return "formatting-header formatting-header-4";
+      } else if (stream.match(LogSeqRegExes.HEADING_FORMAT_REGEX["hf5"])) {
+        return "formatting-header formatting-header-5";
+      } else {
+        stream.skipToEnd();
+      }
+    }
   };
   static cmAddHeadingOverlay(cm: CodeMirror.Editor) {
     cm.addOverlay(CodeMirrorOverlays.headingsOverlay);
+    cm.addOverlay(CodeMirrorOverlays.headingFormatOverlay,{priority:99});
   }
 
   static cmRemoveHeadingOverlay(cm: CodeMirror.Editor) {
     cm.removeOverlay(CodeMirrorOverlays.headingsOverlay);
+    cm.removeOverlay(CodeMirrorOverlays.headingFormatOverlay);
   }
 }
 
